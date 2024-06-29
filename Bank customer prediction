@@ -1,0 +1,68 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+#DATA PROCESSING----------------------------------------
+ds = pd.read_csv('file_name.csv')
+  #the following line creates the matrix
+a = ds.iloc[:, 3:-1].values #colummns
+b = ds.iloc[:, -1].values #rows
+#print(a)
+#print(b)
+
+#Label ecoding thhe gender colummn----------------------
+from sklearn.preprocessing import LabelEncoder
+Le= LabelEncoder()
+a[:, 2]= Le.fit_transform(a[:, 2])
+#print(a)
+
+#encoding the 'Geography' colummn-----------------------
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+Ct= ColumnTransformer(transformers=[('ecoder', OneHotEncoder(), [1])], remainder='passthrough')
+a= np.array(Ct.fit_transform(a))
+#print(a)
+
+#splitting dataset into training and testing--------------
+from sklearn.model_selection import train_test_split
+a_train, a_test, b_train, b_test = train_test_split(a, b, test_size=0.2, random_state=0)
+
+#FEATURE SCALLING-----------------------------------------
+from sklearn.preprocessing import StandardScaler
+Sc= StandardScaler()
+a_train = Sc.fit_transform(a_train )
+a_test = Sc.transform(a_test)
+
+#INITIALIZING ANN------------------------------------------
+Ann =  tf.keras.models.Sequential()
+
+#Addinng innnput layer and the first hidden layer
+Ann.add(tf.keras.layers.Dense(units=6, activation= 'relu'))
+
+Ann.add(tf.keras.layers.Dense(units=6, activation= 'relu'))
+
+#adding  output layer
+Ann.add(tf.keras.layers.Dense(units=1, activation= 'sigmoid'))
+
+#TRAINING THE ANN----------------------------------------------
+
+#compilling the ANN
+Ann.compile(optimizer= 'adam', loss='binary_crossentropy' , metrics=['accuracy'] )
+
+#TRAINING THE NN-----------------------------------------------------------------------------------------------
+Ann.fit(a_train,b_train, batch_size = 32, epochs= 100) #feel free to use any value  to find the best output
+
+#Predicting for a specific customer
+#(Ann.predict(Sc.transform([[1,0,0, 600, 1, 40, 3, 60000,  2, 1, 1, 50000]])))
+
+#predicting the test set
+b_pred= Ann.predict(a_test)
+b_pred= (b_pred>0.5)
+(np.concatenate((b_pred.reshape(len(b_pred), 1), b_test.reshape(len(b_test), 1)),1))
+
+#Making a CONFUSION MATRIX--------------------------------------------------------------------------------------
+from sklearn.metrics import confusion_matrix, accuracy_score
+Cm= confusion_matrix(b_test, b_pred)
+print(Cm)
+AcS= accuracy_score(b_test, b_pred)
+print(AcS)
